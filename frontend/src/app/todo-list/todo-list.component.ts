@@ -1,123 +1,121 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit, inject, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TodoService } from '../services/todo.service';
 import { Todo, CreateTodoDto, TodoPriority } from '../models/todo.model';
 
 @Component({
   selector: 'app-todo-list',
-  standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule],
   templateUrl: './todo-list.component.html',
   styleUrl: './todo-list.component.css',
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TodoListComponent implements OnInit {
-  private todoService = inject(TodoService);
+  private readonly todoService = inject(TodoService);
 
-  todos: Todo[] = [];
-  newTodo: CreateTodoDto = {
+  protected readonly todos = signal<Todo[]>([]);
+  protected readonly newTodo = signal<CreateTodoDto>({
     title: '',
     description: '',
     priority: TodoPriority.MEDIUM,
-  };
-  editingTodo: Todo | null = null;
-  loading = false;
-  error: string | null = null;
+  });
+  protected readonly editingTodo = signal<Todo | null>(null);
+  protected readonly loading = signal(false);
+  protected readonly error = signal<string | null>(null);
 
-  TodoPriority = TodoPriority;
+  protected readonly TodoPriority = TodoPriority;
+  protected readonly todosCount = computed(() => this.todos().length);
 
   ngOnInit(): void {
     this.loadTodos();
   }
 
   loadTodos(): void {
-    this.loading = true;
-    this.error = null;
+    this.loading.set(true);
+    this.error.set(null);
     this.todoService.getTodos().subscribe({
       next: (todos) => {
-        this.todos = todos;
-        this.loading = false;
+        this.todos.set(todos);
+        this.loading.set(false);
       },
       error: (err) => {
-        this.error = 'Failed to load todos. Please check if the backend is running.';
-        this.loading = false;
+        this.error.set('Failed to load todos. Please check if the backend is running.');
+        this.loading.set(false);
         console.error('Error loading todos:', err);
       },
     });
   }
 
   createTodo(): void {
-    if (!this.newTodo.title.trim()) {
+    const todo = this.newTodo();
+    if (!todo.title.trim()) {
       return;
     }
 
-    this.loading = true;
-    this.todoService.createTodo(this.newTodo).subscribe({
-      next: (todo) => {
-        this.todos.unshift(todo);
+    this.loading.set(true);
+    this.todoService.createTodo(todo).subscribe({
+      next: (newTodo) => {
+        this.todos.update(todos => [newTodo, ...todos]);
         this.resetNewTodo();
-        this.loading = false;
+        this.loading.set(false);
       },
       error: (err) => {
-        this.error = 'Failed to create todo';
-        this.loading = false;
+        this.error.set('Failed to create todo');
+        this.loading.set(false);
         console.error('Error creating todo:', err);
       },
     });
   }
-
   toggleComplete(todo: Todo): void {
     this.todoService
       .updateTodo(todo.id, { completed: !todo.completed })
       .subscribe({
         next: (updatedTodo) => {
-          const index = this.todos.findIndex((t) => t.id === todo.id);
-          if (index !== -1) {
-            this.todos[index] = updatedTodo;
-          }
+          this.todos.update(todos =>
+            todos.map(t => t.id === todo.id ? updatedTodo : t)
+          );
         },
         error: (err) => {
-          this.error = 'Failed to update todo';
+          this.error.set('Failed to update todo');
           console.error('Error updating todo:', err);
         },
       });
   }
 
   startEdit(todo: Todo): void {
-    this.editingTodo = { ...todo };
+    this.editingTodo.set({ ...todo });
   }
 
   cancelEdit(): void {
-    this.editingTodo = null;
+    this.editingTodo.set(null);
   }
 
   saveEdit(): void {
-    if (!this.editingTodo || !this.editingTodo.title.trim()) {
+    const editing = this.editingTodo();
+    if (!editing || !editing.title.trim()) {
       return;
     }
 
     this.todoService
-      .updateTodo(this.editingTodo.id, {
-        title: this.editingTodo.title,
-        description: this.editingTodo.description,
-        priority: this.editingTodo.priority,
-        dueDate: this.editingTodo.dueDate,
+      .updateTodo(editing.id, {
+        title: editing.title,
+        description: editing.description,
+        priority: editing.priority,
+        dueDate: editing.dueDate,
       })
       .subscribe({
         next: (updatedTodo) => {
-          const index = this.todos.findIndex((t) => t.id === updatedTodo.id);
-          if (index !== -1) {
-            this.todos[index] = updatedTodo;
-          }
-          this.editingTodo = null;
+          this.todos.update(todos =>
+            todos.map(t => t.id === updatedTodo.id ? updatedTodo : t)
+          );
+          this.editingTodo.set(null);
         },
         error: (err) => {
-          this.error = 'Failed to update todo';
+          this.error.set('Failed to update todo');
           console.error('Error updating todo:', err);
         },
       });
   }
-
   deleteTodo(id: string): void {
     if (!confirm('Are you sure you want to delete this todo?')) {
       return;
@@ -125,21 +123,21 @@ export class TodoListComponent implements OnInit {
 
     this.todoService.deleteTodo(id).subscribe({
       next: () => {
-        this.todos = this.todos.filter((t) => t.id !== id);
+        this.todos.update(todos => todos.filter(t => t.id !== id));
       },
       error: (err) => {
-        this.error = 'Failed to delete todo';
+        this.error.set('Failed to delete todo');
         console.error('Error deleting todo:', err);
       },
     });
   }
 
   resetNewTodo(): void {
-    this.newTodo = {
+    this.newTodo.set({
       title: '',
       description: '',
       priority: TodoPriority.MEDIUM,
-    };
+    });
   }
 
   getPriorityClass(priority: TodoPriority): string {

@@ -2,13 +2,17 @@
   <h1>My Todo List</h1>
 
   <!-- Error Message -->
-  <div class="error-message" *ngIf="error">
-    {{ error }}
-    <button (click)="error = null" class="close-btn">×</button>
-  </div>
+  @if (error()) {
+    <div class="error-message">
+      {{ error() }}
+      <button (click)="error.set(null)" class="close-btn">×</button>
+    </div>
+  }
 
   <!-- Loading Spinner -->
-  <div class="loading" *ngIf="loading">Loading...</div>
+  @if (loading()) {
+    <div class="loading">Loading...</div>
+  }
 
   <!-- Add New Todo Form -->
   <div class="add-todo-form">
@@ -17,7 +21,7 @@
       <div class="form-group">
         <input
           type="text"
-          [(ngModel)]="newTodo.title"
+          [(ngModel)]="newTodo().title"
           name="title"
           placeholder="Todo title *"
           required
@@ -26,7 +30,7 @@
       </div>
       <div class="form-group">
         <textarea
-          [(ngModel)]="newTodo.description"
+          [(ngModel)]="newTodo().description"
           name="description"
           placeholder="Description (optional)"
           class="form-control"
@@ -36,7 +40,7 @@
       <div class="form-row">
         <div class="form-group">
           <label>Priority:</label>
-          <select [(ngModel)]="newTodo.priority" name="priority" class="form-control">
+          <select [(ngModel)]="newTodo().priority" name="priority" class="form-control">
             <option [value]="TodoPriority.LOW">Low</option>
             <option [value]="TodoPriority.MEDIUM">Medium</option>
             <option [value]="TodoPriority.HIGH">High</option>
@@ -46,13 +50,13 @@
           <label>Due Date:</label>
           <input
             type="date"
-            [(ngModel)]="newTodo.dueDate"
+            [(ngModel)]="newTodo().dueDate"
             name="dueDate"
             class="form-control"
           />
         </div>
       </div>
-      <button type="submit" class="btn btn-primary" [disabled]="loading || !newTodo.title.trim()">
+      <button type="submit" class="btn btn-primary" [disabled]="loading() || !newTodo().title.trim()">
         Add Todo
       </button>
     </form>
@@ -60,86 +64,98 @@
 
   <!-- Todo List -->
   <div class="todo-list">
-    <h2>Todos ({{ todos.length }})</h2>
+    <h2>Todos ({{ todosCount() }})</h2>
 
-    <div *ngIf="todos.length === 0 && !loading" class="empty-state">
-      <p>No todos yet. Add one above to get started! 🚀</p>
-    </div>
-
-    <div *ngFor="let todo of todos" class="todo-item" [class.completed]="todo.completed">
-      <!-- View Mode -->
-      <div *ngIf="editingTodo?.id !== todo.id" class="todo-view">
-        <div class="todo-header">
-          <input
-            type="checkbox"
-            [checked]="todo.completed"
-            (change)="toggleComplete(todo)"
-            class="todo-checkbox"
-          />
-          <h3 [class.completed-text]="todo.completed">{{ todo.title }}</h3>
-          <span class="priority-badge" [ngClass]="getPriorityClass(todo.priority)">
-            {{ todo.priority }}
-          </span>
-        </div>
-
-        <p class="todo-description" *ngIf="todo.description">{{ todo.description }}</p>
-
-        <div class="todo-meta">
-          <span *ngIf="todo.dueDate" class="due-date">
-            📅 Due: {{ formatDate(todo.dueDate) }}
-          </span>
-          <span class="created-date">
-            Created: {{ formatDate(todo.createdAt) }}
-          </span>
-        </div>
-
-        <div class="todo-actions">
-          <button (click)="startEdit(todo)" class="btn btn-edit">Edit</button>
-          <button (click)="deleteTodo(todo.id)" class="btn btn-delete">Delete</button>
-        </div>
+    @if (todosCount() === 0 && !loading()) {
+      <div class="empty-state">
+        <p>No todos yet. Add one above to get started! 🚀</p>
       </div>
+    }
 
-      <!-- Edit Mode -->
-      <div *ngIf="editingTodo?.id === todo.id" class="todo-edit">
-        <div class="form-group">
-          <input
-            type="text"
-            [(ngModel)]="editingTodo!.title"
-            placeholder="Todo title"
-            class="form-control"
-          />
-        </div>
-        <div class="form-group">
-          <textarea
-            [(ngModel)]="editingTodo!.description"
-            placeholder="Description"
-            class="form-control"
-            rows="3"
-          ></textarea>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Priority:</label>
-            <select [(ngModel)]="editingTodo!.priority" class="form-control">
-              <option [value]="TodoPriority.LOW">Low</option>
-              <option [value]="TodoPriority.MEDIUM">Medium</option>
-              <option [value]="TodoPriority.HIGH">High</option>
-            </select>
+    @for (todo of todos(); track todo.id) {
+      <div class="todo-item" [class.completed]="todo.completed">
+        <!-- View Mode -->
+        @if (editingTodo()?.id !== todo.id) {
+          <div class="todo-view">
+            <div class="todo-header">
+              <input
+                type="checkbox"
+                [checked]="todo.completed"
+                (change)="toggleComplete(todo)"
+                class="checkbox"
+              />
+              <h3 [class.completed-text]="todo.completed">{{ todo.title }}</h3>
+              <span class="priority-badge" [class]="getPriorityClass(todo.priority)">
+                {{ todo.priority }}
+              </span>
+            </div>
+
+            @if (todo.description) {
+              <p class="todo-description">{{ todo.description }}</p>
+            }
+
+            <div class="todo-meta">
+              @if (todo.dueDate) {
+                <span class="due-date">
+                  📅 Due: {{ formatDate(todo.dueDate) }}
+                </span>
+              }
+              <span class="created-date">
+                Created: {{ formatDate(todo.createdAt) }}
+              </span>
+            </div>
+
+            <div class="todo-actions">
+              <button (click)="startEdit(todo)" class="btn btn-edit">Edit</button>
+              <button (click)="deleteTodo(todo.id)" class="btn btn-delete">Delete</button>
+            </div>
           </div>
-          <div class="form-group">
-            <label>Due Date:</label>
-            <input
-              type="date"
-              [(ngModel)]="editingTodo!.dueDate"
-              class="form-control"
-            />
+        }
+
+        <!-- Edit Mode -->
+        @if (editingTodo()?.id === todo.id) {
+          <div class="todo-edit">
+            <div class="form-group">
+              <input
+                type="text"
+                [(ngModel)]="editingTodo()!.title"
+                placeholder="Todo title"
+                class="form-control"
+              />
+            </div>
+            <div class="form-group">
+              <textarea
+                [(ngModel)]="editingTodo()!.description"
+                placeholder="Description"
+                class="form-control"
+                rows="3"
+              ></textarea>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Priority:</label>
+                <select [(ngModel)]="editingTodo()!.priority" class="form-control">
+                  <option [value]="TodoPriority.LOW">Low</option>
+                  <option [value]="TodoPriority.MEDIUM">Medium</option>
+                  <option [value]="TodoPriority.HIGH">High</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Due Date:</label>
+                <input
+                  type="date"
+                  [(ngModel)]="editingTodo()!.dueDate"
+                  class="form-control"
+                />
+              </div>
+            </div>
+            <div class="todo-actions">
+              <button (click)="saveEdit()" class="btn btn-primary">Save</button>
+              <button (click)="cancelEdit()" class="btn btn-secondary">Cancel</button>
+            </div>
           </div>
-        </div>
-        <div class="todo-actions">
-          <button (click)="saveEdit()" class="btn btn-primary">Save</button>
-          <button (click)="cancelEdit()" class="btn btn-secondary">Cancel</button>
-        </div>
+        }
       </div>
-    </div>
+    }
   </div>
 </div>
