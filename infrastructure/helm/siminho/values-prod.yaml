@@ -1,0 +1,39 @@
+# Production environment values
+global:
+  environment: production
+
+postgresql:
+  auth:
+    database: siminho_prod
+  persistence:
+    size: 20Gi
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+
+backend:
+  replicaCount: 3
+  env:
+    DB_DATABASE: siminho_prod
+    NODE_ENV: production
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+
+frontend:
+  replicaCount: 3
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "200m"
+    limits:
+      memory: "512Mi"
+      cpu: "400m"
