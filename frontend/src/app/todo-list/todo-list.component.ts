@@ -13,7 +13,7 @@ import { Todo, CreateTodoDto, TodoPriority } from '../models/todo.model';
 })
 export class TodoListComponent implements OnInit {
   private todoService = inject(TodoService);
-  
+
   todos: Todo[] = [];
   newTodo: CreateTodoDto = {
     title: '',
