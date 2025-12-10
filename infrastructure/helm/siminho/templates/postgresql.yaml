@@ -1,0 +1,103 @@
+{{- if .Values.postgresql.enabled -}}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Values.postgresql.service.name }}-pvc
+  labels:
+    app: postgres
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.postgresql.persistence.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.postgresql.persistence.size }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+data:
+  POSTGRES_DB: {{ .Values.postgresql.auth.database }}
+  POSTGRES_USER: {{ .Values.postgresql.auth.username }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+type: Opaque
+stringData:
+  POSTGRES_PASSWORD: {{ .Values.postgresql.auth.password }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  labels:
+    app: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: {{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}
+        ports:
+        - containerPort: {{ .Values.postgresql.service.port }}
+        envFrom:
+        - configMapRef:
+            name: postgres-config
+        - secretRef:
+            name: postgres-secret
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+          subPath: postgres
+        resources:
+          requests:
+            memory: {{ .Values.postgresql.resources.requests.memory }}
+            cpu: {{ .Values.postgresql.resources.requests.cpu }}
+          limits:
+            memory: {{ .Values.postgresql.resources.limits.memory }}
+            cpu: {{ .Values.postgresql.resources.limits.cpu }}
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - {{ .Values.postgresql.auth.username }}
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - {{ .Values.postgresql.auth.username }}
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: {{ .Values.postgresql.service.name }}-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.postgresql.service.name }}
+  labels:
+    app: postgres
+spec:
+  type: ClusterIP
+  ports:
+  - port: {{ .Values.postgresql.service.port }}
+    targetPort: {{ .Values.postgresql.service.port }}
+  selector:
+    app: postgres
+{{- end }}

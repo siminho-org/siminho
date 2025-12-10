@@ -1,0 +1,145 @@
+<div class="todo-container">
+  <h1>My Todo List</h1>
+
+  <!-- Error Message -->
+  <div class="error-message" *ngIf="error">
+    {{ error }}
+    <button (click)="error = null" class="close-btn">×</button>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div class="loading" *ngIf="loading">Loading...</div>
+
+  <!-- Add New Todo Form -->
+  <div class="add-todo-form">
+    <h2>Add New Todo</h2>
+    <form (ngSubmit)="createTodo()">
+      <div class="form-group">
+        <input
+          type="text"
+          [(ngModel)]="newTodo.title"
+          name="title"
+          placeholder="Todo title *"
+          required
+          class="form-control"
+        />
+      </div>
+      <div class="form-group">
+        <textarea
+          [(ngModel)]="newTodo.description"
+          name="description"
+          placeholder="Description (optional)"
+          class="form-control"
+          rows="3"
+        ></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Priority:</label>
+          <select [(ngModel)]="newTodo.priority" name="priority" class="form-control">
+            <option [value]="TodoPriority.LOW">Low</option>
+            <option [value]="TodoPriority.MEDIUM">Medium</option>
+            <option [value]="TodoPriority.HIGH">High</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Due Date:</label>
+          <input
+            type="date"
+            [(ngModel)]="newTodo.dueDate"
+            name="dueDate"
+            class="form-control"
+          />
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary" [disabled]="loading || !newTodo.title.trim()">
+        Add Todo
+      </button>
+    </form>
+  </div>
+
+  <!-- Todo List -->
+  <div class="todo-list">
+    <h2>Todos ({{ todos.length }})</h2>
+
+    <div *ngIf="todos.length === 0 && !loading" class="empty-state">
+      <p>No todos yet. Add one above to get started! 🚀</p>
+    </div>
+
+    <div *ngFor="let todo of todos" class="todo-item" [class.completed]="todo.completed">
+      <!-- View Mode -->
+      <div *ngIf="editingTodo?.id !== todo.id" class="todo-view">
+        <div class="todo-header">
+          <input
+            type="checkbox"
+            [checked]="todo.completed"
+            (change)="toggleComplete(todo)"
+            class="todo-checkbox"
+          />
+          <h3 [class.completed-text]="todo.completed">{{ todo.title }}</h3>
+          <span class="priority-badge" [ngClass]="getPriorityClass(todo.priority)">
+            {{ todo.priority }}
+          </span>
+        </div>
+
+        <p class="todo-description" *ngIf="todo.description">{{ todo.description }}</p>
+
+        <div class="todo-meta">
+          <span *ngIf="todo.dueDate" class="due-date">
+            📅 Due: {{ formatDate(todo.dueDate) }}
+          </span>
+          <span class="created-date">
+            Created: {{ formatDate(todo.createdAt) }}
+          </span>
+        </div>
+
+        <div class="todo-actions">
+          <button (click)="startEdit(todo)" class="btn btn-edit">Edit</button>
+          <button (click)="deleteTodo(todo.id)" class="btn btn-delete">Delete</button>
+        </div>
+      </div>
+
+      <!-- Edit Mode -->
+      <div *ngIf="editingTodo?.id === todo.id" class="todo-edit">
+        <div class="form-group">
+          <input
+            type="text"
+            [(ngModel)]="editingTodo!.title"
+            placeholder="Todo title"
+            class="form-control"
+          />
+        </div>
+        <div class="form-group">
+          <textarea
+            [(ngModel)]="editingTodo!.description"
+            placeholder="Description"
+            class="form-control"
+            rows="3"
+          ></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Priority:</label>
+            <select [(ngModel)]="editingTodo!.priority" class="form-control">
+              <option [value]="TodoPriority.LOW">Low</option>
+              <option [value]="TodoPriority.MEDIUM">Medium</option>
+              <option [value]="TodoPriority.HIGH">High</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Due Date:</label>
+            <input
+              type="date"
+              [(ngModel)]="editingTodo!.dueDate"
+              class="form-control"
+            />
+          </div>
+        </div>
+        <div class="todo-actions">
+          <button (click)="saveEdit()" class="btn btn-primary">Save</button>
+          <button (click)="cancelEdit()" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

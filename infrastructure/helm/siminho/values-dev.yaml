@@ -1,0 +1,39 @@
+# Development environment values
+global:
+  environment: development
+
+postgresql:
+  auth:
+    database: siminho_dev
+  persistence:
+    size: 5Gi
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+
+backend:
+  replicaCount: 1
+  env:
+    DB_DATABASE: siminho_dev
+    NODE_ENV: development
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "250m"
+
+frontend:
+  replicaCount: 1
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "50m"
+    limits:
+      memory: "128Mi"
+      cpu: "100m"
