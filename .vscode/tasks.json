@@ -1,0 +1,101 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Start Database",
+      "type": "shell",
+      "command": "docker-compose -f docker-compose.dev.yml up postgres",
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^(.*)$",
+          "line": 1
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "(database system is ready to accept connections|Attaching to)"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "dev"
+      }
+    },
+    {
+      "label": "Start Backend",
+      "type": "shell",
+      "command": "npm run start:dev",
+      "options": {
+        "cwd": "${workspaceFolder}/backend"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+)\\s+-\\s+(error|warning|info)\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "Nest application successfully started"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "dev"
+      }
+    },
+    {
+      "label": "Start Frontend",
+      "type": "shell",
+      "command": "npm start",
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": {
+          "regexp": "^(.*):(\\d+):(\\d+)\\s+-\\s+(error|warning)\\s+(.*)$",
+          "file": 1,
+          "line": 2,
+          "column": 3,
+          "severity": 4,
+          "message": 5
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "(Compiled successfully|Application bundle generation complete)"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "group": "dev"
+      }
+    },
+    {
+      "label": "Start All (Database + Backend + Frontend)",
+      "dependsOn": [
+        "Start Database",
+        "Start Backend",
+        "Start Frontend"
+      ],
+      "dependsOrder": "sequence",
+      "problemMatcher": []
+    },
+    {
+      "label": "Stop Database",
+      "type": "shell",
+      "command": "docker-compose -f docker-compose.dev.yml down",
+      "problemMatcher": []
+    }
+  ]
+}
