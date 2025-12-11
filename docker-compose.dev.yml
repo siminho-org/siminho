@@ -1,4 +1,7 @@
 services:
+  # Note: Frontend is not included in dev compose file.
+  # Run frontend separately with 'npm start' for better hot-reload performance.
+  
   # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
