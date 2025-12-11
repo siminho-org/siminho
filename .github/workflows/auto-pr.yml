@@ -1,0 +1,66 @@
+name: Auto Create Pull Request
+
+on:
+  push:
+    branches:
+      - '**'
+      - '!main'
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  create-pull-request:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if PR already exists
+        id: check-pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH_NAME="${{ github.ref_name }}"
+          PR_EXISTS=$(gh pr list --head "$BRANCH_NAME" --json number --jq length)
+          echo "pr_exists=$PR_EXISTS" >> $GITHUB_OUTPUT
+
+      - name: Create Pull Request
+        if: steps.check-pr.outputs.pr_exists == '0'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH_NAME="${{ github.ref_name }}"
+          
+          # Format branch name for PR title (convert hyphens/underscores to spaces, capitalize)
+          PR_TITLE=$(echo "$BRANCH_NAME" | sed 's/[-_]/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2));}1')
+          
+          # Create PR body
+          PR_BODY="## Description
+          
+          This PR was automatically created from branch \`$BRANCH_NAME\`.
+          
+          Please update this description with details about your changes.
+          
+          ## Changes
+          - [ ] Add your changes here
+          
+          ## Testing
+          - [ ] Tested locally
+          - [ ] All tests passing
+          
+          ---
+          _Auto-generated PR - please review and update the description._"
+          
+          gh pr create \
+            --title "$PR_TITLE" \
+            --body "$PR_BODY" \
+            --base main \
+            --head "$BRANCH_NAME"
+
+      - name: PR already exists
+        if: steps.check-pr.outputs.pr_exists != '0'
+        run: |
+          echo "Pull request already exists for branch ${{ github.ref_name }}"
